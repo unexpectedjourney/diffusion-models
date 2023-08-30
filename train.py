@@ -103,7 +103,7 @@ def get_conf():
     args = parser.parse_args()
     args.epochs = 500
     args.batch_size = 128
-    args.image_size = 32
+    args.img_size = 32
     args.device = "cuda"
     args.lr = 2e-4
 
