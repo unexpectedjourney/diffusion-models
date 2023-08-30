@@ -1,4 +1,3 @@
-import torch
 import torchvision
 import torchvision.transforms as T
 
@@ -16,18 +15,11 @@ def load_transformed_data(img_size, batch_size):
     ]
     data_transform = T.Compose(data_transforms)
 
-    train = torchvision.datasets.StanfordCars(
+    data = torchvision.datasets.CIFAR10(
         root=".",
         download=True,
         transform=data_transform
     )
-    test = torchvision.datasets.StanfordCars(
-        root=".",
-        download=True,
-        transform=data_transform,
-        split='test'
-    )
-    data = torch.utils.data.ConcatDataset([train, test])
     data_loader = DataLoader(
         data, batch_size=batch_size, shuffle=True, drop_last=True
     )

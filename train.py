@@ -38,7 +38,7 @@ class DDPM:
         noise = torch.randn_like(x_0)
         sqrt_alpha_hat = torch.sqrt(self.alpha_hat[t])[:, None, None, None]
         sqrt_one_minus_alpha_hat = torch.sqrt(
-            1 - self.sqrt_alpha_hat[t]
+            1 - self.alpha_hat[t]
         )[:, None, None, None]
         return sqrt_alpha_hat * x_0 + sqrt_one_minus_alpha_hat * noise, noise
 
@@ -72,7 +72,7 @@ def train(opt):
     model = UNet().to(device)
     optimizer = optim.AdamW(model.parameters(), lr=opt.lr)
     mse = nn.MSELoss()
-    diffusion = DDPM(img_size=opt.image_size, device=device)
+    diffusion = DDPM(img_size=opt.img_size, device=device)
     logger = SummaryWriter()
     dlength = len(data)
 
@@ -102,8 +102,8 @@ def get_conf():
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
     args.epochs = 500
-    args.batch_size = 128
-    args.img_size = 32
+    args.batch_size = 8
+    args.img_size = 64
     args.device = "cuda"
     args.lr = 2e-4
 
