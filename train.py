@@ -1,4 +1,5 @@
 import os
+import copy
 import argparse
 
 import torch
@@ -8,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from src.data import load_transformed_data
-from src.modules import UNet
+from src.modules import UNet, EMA
 from src.utils import save_images
 
 
@@ -75,6 +76,8 @@ def train(opt):
     diffusion = DDPM(img_size=opt.img_size, device=device)
     logger = SummaryWriter()
     dlength = len(data)
+    ema = EMA(0.9999)
+    ema_model = copy.deepcopy(model).eval().requires_grad_(False)
 
     for epoch in range(opt.epochs):
         pbar = tqdm(data)
@@ -88,14 +91,22 @@ def train(opt):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            ema.step_ema(ema_model, model)
 
             pbar.set_postfix(MSE=loss.item())
             logger.add_scalar("MSE", loss.item(), global_step=epoch * dlength + i)
+
         sampled_images = diffusion.sample(model, n=imgs.shape[0])
         img_path = os.path.join("results", opt.run_name, f"{epoch}.jpg")
         save_images(sampled_images, img_path)
+        ema_sampled_images = diffusion.sample(ema_model, n=imgs.shape[0])
+        ema_img_path = os.path.join("results", opt.run_name, f"ema_{epoch}.jpg")
+        save_images(ema_sampled_images, ema_img_path)
+
         checkpoint_path = os.path.join("models", opt.run_name, "ckpt.pt")
         torch.save(model.state_dict(), checkpoint_path)
+        ema_checkpoint_path = os.path.join("models", opt.run_name, "ema_ckpt.pt")
+        torch.save(ema_model.state_dict(), ema_checkpoint_path)
 
 
 def get_conf():
