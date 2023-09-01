@@ -97,15 +97,15 @@ def train(opt):
             logger.add_scalar("MSE", loss.item(), global_step=epoch * dlength + i)
 
         sampled_images = diffusion.sample(model, n=imgs.shape[0])
-        img_path = os.path.join("results", opt.run_name, f"{epoch}.jpg")
+        img_path = os.path.join("results", f"{epoch}.jpg")
         save_images(sampled_images, img_path)
         ema_sampled_images = diffusion.sample(ema_model, n=imgs.shape[0])
-        ema_img_path = os.path.join("results", opt.run_name, f"ema_{epoch}.jpg")
+        ema_img_path = os.path.join("results", f"ema_{epoch}.jpg")
         save_images(ema_sampled_images, ema_img_path)
 
-        checkpoint_path = os.path.join("models", opt.run_name, "ckpt.pt")
+        checkpoint_path = os.path.join("models", "ckpt.pt")
         torch.save(model.state_dict(), checkpoint_path)
-        ema_checkpoint_path = os.path.join("models", opt.run_name, "ema_ckpt.pt")
+        ema_checkpoint_path = os.path.join("models", "ema_ckpt.pt")
         torch.save(ema_model.state_dict(), ema_checkpoint_path)
 
 
