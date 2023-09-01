@@ -50,7 +50,7 @@ class DDPM:
         model.eval()
         with torch.no_grad():
             x = torch.randn((n, 3, self.img_size, self.img_size)).to(self.device)
-            for i in range(self.noise_steps, 0, -1):
+            for i in range(self.noise_steps-1, 0, -1):
                 t = (torch.ones(n) * i).long().to(self.device)
                 predicted_noise = model(x, t)
                 alpha = self.alpha[t][:, None, None, None]
