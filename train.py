@@ -61,8 +61,9 @@ class DDPM:
                 else:
                     noise = torch.zeros_like(x)
                 x = (1 / torch.sqrt(alpha)) * (((x - (1 - alpha)) / (torch.sqrt(1 - alpha_hat))) * predicted_noise) + beta * noise
+                x = x.clamp(-1, 1)
         model.train()
-        x = (x.clamp(-1, 1) + 1) / 2
+        x = (x + 1) / 2
         x = (x * 255).type(torch.uint8)
         return x
 
