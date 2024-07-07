@@ -1,7 +1,9 @@
 import os
+import math
 import copy
 import argparse
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch import optim
@@ -13,6 +15,17 @@ from src.modules import UNet, EMA
 from src.utils import save_images
 
 
+def betas_for_alpha_bar(num_diffusion_timesteps, alpha_bar, max_beta=0.999):
+    betas = []
+    for i in range(num_diffusion_timesteps):
+        t1 = i / num_diffusion_timesteps
+        t2 = (i + 1) / num_diffusion_timesteps
+        betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
+    betas_np = np.array(betas)
+    betas_torch = torch.from_numpy(betas_np)
+    return betas_torch
+
+
 class DDPM:
     def __init__(
         self,
@@ -20,20 +33,30 @@ class DDPM:
         beta_start=1e-4,
         beta_end=0.02,
         img_size=256,
-        device="cuda"
+        device="cuda",
+        scheduler="linear"
     ):
         self.noise_steps = noise_steps
         self.beta_start = beta_start
         self.beta_end = beta_end
         self.img_size = img_size
         self.device = device
+        self.scheduler = scheduler
 
         self.beta = self.prepare_noise_schedule().to(device)
         self.alpha = 1. - self.beta
         self.alpha_hat = torch.cumprod(self.alpha, dim=0)
 
     def prepare_noise_schedule(self):
-        return torch.linspace(self.beta_start, self.beta_end, self.noise_steps)
+        if self.scheduler == "linear":
+            return torch.linspace(self.beta_start, self.beta_end, self.noise_steps)
+        elif self.scheduler == "cos":
+            return betas_for_alpha_bar(
+                self.noise_steps,
+                lambda t: math.cos((t + 0.008) / 1.008 * math.pi / 2) ** 2,
+            )
+        else:
+            raise NotImplementedError(f"The {self.scheduler} scheduler is unknown")
 
     def noise_images(self, x_0, t):
         noise = torch.randn_like(x_0)
@@ -74,7 +97,7 @@ def train(opt):
     model = UNet().to(device)
     optimizer = optim.AdamW(model.parameters(), lr=opt.lr)
     mse = nn.MSELoss()
-    diffusion = DDPM(img_size=opt.img_size, device=device)
+    diffusion = DDPM(img_size=opt.img_size, device=device, scheduler=opt.scheduler)
     logger = SummaryWriter()
     dlength = len(data)
     ema = EMA(0.9999)
@@ -120,6 +143,7 @@ def get_conf():
     args.device = "cuda"
     args.lr = 2e-4
     args.save_every = 1
+    args.scheduler = "linear"  # or "cos" TODO fix it due to enums
 
     return args
 
